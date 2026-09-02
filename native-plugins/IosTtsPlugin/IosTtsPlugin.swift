@@ -70,7 +70,6 @@ public class IosTtsPlugin: CAPPlugin {
             self.synthesizer.stopSpeaking(at: .immediate)
 
             let utterance = AVSpeechUtterance(string: text)
-            utterance.language = language
 
             // AVSpeechUtterance rate: 0.0~1.0（AVSpeechUtteranceDefaultSpeechRate ≈ 0.5）
             // 我们接收 0.5~2.0 范围，映射到 0.0~1.0
@@ -125,7 +124,7 @@ extension IosTtsPlugin: AVSpeechSynthesizerDelegate {
     }
 
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
-                                   didEncounterError error: AVSpeechSynthesisVoice.Error) {
+                                   didEncounterError error: Error) {
         self.notifyListeners("ttsError", data: ["message": error.localizedDescription])
     }
 }
