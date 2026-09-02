@@ -42,12 +42,11 @@ jobs:
 
       - name: 📋 Copy custom iOS plugins into Xcode project
         run: |
-          mkdir -p ios/App/App/IosTtsPlugin
-          mkdir -p ios/App/App/IosAsrPlugin
-          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.swift ios/App/App/IosTtsPlugin/
-          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.m     ios/App/App/IosTtsPlugin/
-          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.swift ios/App/App/IosAsrPlugin/
-          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.m     ios/App/App/IosAsrPlugin/
+          # Files must be at App group root (App/IosTtsPlugin.swift) to match Xcode project references
+          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.swift ios/App/App/IosTtsPlugin.swift
+          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.m     ios/App/App/IosTtsPlugin.m
+          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.swift ios/App/App/IosAsrPlugin.swift
+          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.m     ios/App/App/IosAsrPlugin.m
 
       - name: 📦 Install CocoaPods
         run: |
@@ -66,11 +65,12 @@ jobs:
             require "xcodeproj"
             project = Xcodeproj::Project.open("App.xcodeproj")
             target = project.targets.first
+            app_group = project.main_group.find_subpath("App", true) || project.main_group
 
             ["IosTtsPlugin", "IosAsrPlugin"].each do |plugin_name|
-              group = project.main_group.find_subpath("App/#{plugin_name}") || project.main_group.find_subpath("App").new_group(plugin_name)
+              group = app_group.find_subpath(plugin_name, true)
               ["#{plugin_name}.swift", "#{plugin_name}.m"].each do |filename|
-                filepath = "App/#{plugin_name}/#{filename}"
+                filepath = "App/#{filename}"
                 next unless File.exist?(filepath)
                 existing = group.files.find { |f| f.path == filename }
                 next if existing
@@ -131,3 +131,4 @@ jobs:
           echo "3. 下载 SpeakEasy-iOS-IPA" >> $GITHUB_STEP_SUMMARY
           echo "4. 解压得到 .ipa 文件" >> $GITHUB_STEP_SUMMARY
           echo "5. 用爱思助手或 AltStore 签名安装到 iPhone" >> $GITHUB_STEP_SUMMARY
+
