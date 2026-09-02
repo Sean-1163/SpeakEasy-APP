@@ -23,7 +23,7 @@ public class IosTtsPlugin: CAPPlugin {
 
     // MARK: - Plugin Methods
 
-    @objc func init(_ call: CAPPluginCall) {
+    @objc func `init`(_ call: CAPPluginCall) {
         isReady = true
         call.resolve(["ready": true])
     }
