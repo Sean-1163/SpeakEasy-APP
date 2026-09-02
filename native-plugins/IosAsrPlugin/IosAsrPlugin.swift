@@ -36,7 +36,7 @@ public class IosAsrPlugin: CAPPlugin {
 
     // MARK: - Plugin Methods
 
-    @objc override func requestPermissions(_ call: CAPPluginCall) {
+    public override @objc func requestPermissions(_ call: CAPPluginCall) {
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
             let granted: Bool
             switch status {
