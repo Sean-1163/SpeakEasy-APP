@@ -1,9 +1,9 @@
 name: Build iOS IPA
 
 on:
-  # 鎵嬪姩瑙﹀彂锛堟帹鑽愶級
+
   workflow_dispatch:
-  # 鎺ㄩ€佸埌 main 鍒嗘敮鏃惰嚜鍔ㄦ瀯寤?  push:
+
     branches: [ main ]
     paths:
       - 'src/**'
@@ -35,13 +35,14 @@ jobs:
 
       - name: 馃摫 Add iOS platform
         run: |
-          # ios/ 涓嶅叆搴擄紝姣忔鐢?CI 閲嶆柊鐢熸垚瀹屾暣鍘熺敓宸ョ▼锛堝惈 App.xcodeproj锛?          rm -rf ios/
+
+          rm -rf ios
           npx cap add ios
           npx cap sync ios
 
       - name: 馃搵 Copy custom iOS plugins into Xcode project
         run: |
-          # 浠?native-plugins 澶嶅埗鍒?Xcode 椤圭洰婧愮爜鐩綍
+
           cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.swift ios/App/App/
           cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.m     ios/App/App/
           cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.swift ios/App/App/
