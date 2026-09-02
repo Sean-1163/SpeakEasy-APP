@@ -79,7 +79,7 @@ public class IosAsrPlugin: CAPPlugin {
         }
 
         // 检查麦克风权限
-        AVAudioApplication.requestRecordPermission { [weak self] granted in
+        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
             guard let self = self else { return }
 
             if !granted {
