@@ -8,7 +8,7 @@ on:
     branches: [ main ]
     paths:
       - 'src/**'
-      - 'ios/**'
+      - 'native-plugins/**'
       - 'public/**'
       - 'package.json'
       - 'capacitor.config.ts'
@@ -36,22 +36,18 @@ jobs:
 
       - name: 📱 Add iOS platform
         run: |
-          if [ ! -d "ios/App" ]; then
-            npx cap add ios
-          fi
+          # ios/ 不入库，每次由 CI 重新生成完整原生工程（含 App.xcodeproj）
+          npx cap add ios
           npx cap sync ios
 
       - name: 📋 Copy custom iOS plugins into Xcode project
         run: |
-          # 确保插件目录存在
           mkdir -p ios/App/App/IosTtsPlugin
           mkdir -p ios/App/App/IosAsrPlugin
-
-          # 复制插件源码
-          cp -f ios/App/App/IosTtsPlugin/IosTtsPlugin.swift ios/App/App/IosTtsPlugin/ 2>/dev/null || true
-          cp -f ios/App/App/IosTtsPlugin/IosTtsPlugin.m ios/App/App/IosTtsPlugin/ 2>/dev/null || true
-          cp -f ios/App/App/IosAsrPlugin/IosAsrPlugin.swift ios/App/App/IosAsrPlugin/ 2>/dev/null || true
-          cp -f ios/App/App/IosAsrPlugin/IosAsrPlugin.m ios/App/App/IosAsrPlugin/ 2>/dev/null || true
+          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.swift ios/App/App/IosTtsPlugin/
+          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.m     ios/App/App/IosTtsPlugin/
+          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.swift ios/App/App/IosAsrPlugin/
+          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.m     ios/App/App/IosAsrPlugin/
 
       - name: 📦 Install CocoaPods
         run: |
@@ -64,7 +60,6 @@ jobs:
       - name: 🔧 Add plugins to Xcode project
         run: |
           cd ios/App
-          # 使用 ruby 脚本将插件文件添加到 Xcode 项目
           ruby -e '
             require "xcodeproj"
             project = Xcodeproj::Project.open("App.xcodeproj")
@@ -100,7 +95,6 @@ jobs:
       - name: 🔨 Build IPA (unsigned, no Apple Developer account needed)
         run: |
           cd ios/App
-          # 无签名构建（用户后续用爱思助手/AltStore 自行签名）
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
@@ -111,7 +105,6 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -archivePath build/App.xcarchive archive
 
-          # 从 archive 中提取 .ipa
           mkdir -p build/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
           cd build
