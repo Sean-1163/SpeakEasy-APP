@@ -2,7 +2,7 @@
 #import <Capacitor/Capacitor.h>
 
 CAP_PLUGIN(IosTtsPlugin, "IosTts",
-    CAP_PLUGIN_METHOD(init, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(doInit, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(checkAvailable, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(getLanguages, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(setLanguage, CAPPluginReturnPromise);
