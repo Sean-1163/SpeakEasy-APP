@@ -8,7 +8,7 @@ on:
     branches: [ main ]
     paths:
       - 'src/**'
-      - 'native-plugins/**'
+      - 'ios/**'
       - 'public/**'
       - 'package.json'
       - 'capacitor.config.ts'
@@ -28,30 +28,30 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: 📦 Install dependencies
-        run: npm install --legacy-peer-deps
+      - name: 📥 Install dependencies
+        run: npm ci --legacy-peer-deps
 
       - name: 🔨 Build web assets
         run: npm run build
 
       - name: 📱 Add iOS platform
         run: |
-          # ios/ 不入库，每次由 CI 重新生成完整原生工程（含 App.xcodeproj）
-          npx cap add ios
+          if [ ! -d "ios/App" ]; then
+            npx cap add ios
+          fi
           npx cap sync ios
 
       - name: 📋 Copy custom iOS plugins into Xcode project
         run: |
-          # Files must be at App group root (App/IosTtsPlugin.swift) to match Xcode project references
-          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.swift ios/App/App/IosTtsPlugin.swift
-          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.m     ios/App/App/IosTtsPlugin.m
-          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.swift ios/App/App/IosAsrPlugin.swift
-          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.m     ios/App/App/IosAsrPlugin.m
+          # 从 native-plugins 复制到 Xcode 项目源码目录
+          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.swift ios/App/App/
+          cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.m     ios/App/App/
+          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.swift ios/App/App/
+          cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.m     ios/App/App/
+          echo "Plugin files copied to ios/App/App/"
 
       - name: 📦 Install CocoaPods
         run: |
-          # Capacitor 8.x 要求 iOS 15.1+，强制修正 Podfile 部署目标
-          sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.1'/" ios/App/Podfile
           cd ios/App
           pod install --repo-update
 
@@ -68,13 +68,13 @@ jobs:
             app_group = project.main_group.find_subpath("App", true) || project.main_group
 
             ["IosTtsPlugin", "IosAsrPlugin"].each do |plugin_name|
-              group = app_group.find_subpath(plugin_name, true)
+              group = app_group.find_subpath(plugin_name, true) || app_group.new_group(plugin_name)
               ["#{plugin_name}.swift", "#{plugin_name}.m"].each do |filename|
                 filepath = "App/#{filename}"
                 next unless File.exist?(filepath)
                 existing = group.files.find { |f| f.path == filename }
                 next if existing
-                file_ref = group.new_file(filename)
+                file_ref = group.new_file(filepath)
                 target.add_file_references([file_ref])
                 puts "Added #{filename} to Xcode project"
               end
@@ -131,4 +131,3 @@ jobs:
           echo "3. 下载 SpeakEasy-iOS-IPA" >> $GITHUB_STEP_SUMMARY
           echo "4. 解压得到 .ipa 文件" >> $GITHUB_STEP_SUMMARY
           echo "5. 用爱思助手或 AltStore 签名安装到 iPhone" >> $GITHUB_STEP_SUMMARY
-
