@@ -1,9 +1,7 @@
 name: Build iOS IPA
 
 on:
-
   workflow_dispatch:
-
     branches: [ main ]
     paths:
       - 'src/**'
@@ -18,46 +16,49 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: 馃摜 Checkout code
+      - name: 🎯 拉取项目代码
         uses: actions/checkout@v4
 
-      - name: 馃摝 Setup Node.js
+      - name: 🛠️ 配置Node.js 22环境
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
-      - name: 馃摜 Install dependencies
+      - name: 📦 安装项目依赖
         run: npm ci --legacy-peer-deps
 
-      - name: 馃敤 Build web assets
+      - name: 🏗️ 构建Web静态资源
         run: npm run build
 
-      - name: 馃摫 Add iOS platform
+      - name: 📱 初始化iOS平台
         run: |
-
           rm -rf ios
           npx cap add ios
           npx cap sync ios
 
-      - name: 馃搵 Copy custom iOS plugins into Xcode project
+      - name: 📂 复制自定义语音插件
         run: |
-
+          # 提前校验插件文件是否存在
+          ls native-plugins/IosTtsPlugin/
+          ls native-plugins/IosAsrPlugin/
           cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.swift ios/App/App/
           cp -f native-plugins/IosTtsPlugin/IosTtsPlugin.m     ios/App/App/
           cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.swift ios/App/App/
           cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.m     ios/App/App/
-          echo "Plugin files copied to ios/App/App/"
+          echo "插件文件已成功复制到iOS项目目录"
 
-      - name: 馃摝 Install CocoaPods
+      - name: 💎 安装CocoaPods与xcodeproj依赖
         run: |
+          gem install xcodeproj
           cd ios/App
+          pod --version
           pod install --repo-update
 
-      - name: 馃摫 Sync iOS project
+      - name: 🔄 同步iOS项目配置
         run: npx cap sync ios
 
-      - name: 馃敡 Add plugins to Xcode project
+      - name: ➕ 将插件添加到Xcode编译列表
         run: |
           cd ios/App
           ruby -e '
@@ -65,7 +66,6 @@ jobs:
             project = Xcodeproj::Project.open("App.xcodeproj")
             target = project.targets.first
             app_group = project.main_group.find_subpath("App", true) || project.main_group
-
             ["IosTtsPlugin", "IosAsrPlugin"].each do |plugin_name|
               group = app_group.find_subpath(plugin_name, true) || app_group.new_group(plugin_name)
               ["#{plugin_name}.swift", "#{plugin_name}.m"].each do |filename|
@@ -75,27 +75,27 @@ jobs:
                 next if existing
                 file_ref = group.new_file(filepath)
                 target.add_file_references([file_ref])
-                puts "Added #{filename} to Xcode project"
+                puts "已将 #{filename} 添加到Xcode项目"
               end
             end
-
             project.save
-            puts "Xcode project updated"
-          ' || echo "Note: xcodeproj gem not available, plugins may need manual adding"
+            puts "Xcode项目配置更新完成"
+          '
 
-      - name: 馃敡 Setup Xcode
+      - name: 🧰 配置最新稳定版Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      - name: 馃摑 Update Info.plist
+      - name: 📝 更新权限配置文件
         run: |
-          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'SpeakEasy needs microphone for voice recognition'" ios/App/App/Info.plist 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :NSSpeechRecognitionUsageDescription string 'SpeakEasy needs speech recognition for English practice'" ios/App/App/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'SpeakEasy需要麦克风权限用于语音识别'" ios/App/App/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSSpeechRecognitionUsageDescription string 'SpeakEasy需要语音识别权限用于英语练习'" ios/App/App/Info.plist 2>/dev/null || true
 
-      - name: 馃敤 Build IPA (unsigned, no Apple Developer account needed)
+      - name: 📦 构建无签名IPA安装包
         run: |
           cd ios/App
+          rm -rf build
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
@@ -104,29 +104,30 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE=Manual \
+            EXPANDED_CODE_SIGN_IDENTITY="" \
             -archivePath build/App.xcarchive archive
-
           mkdir -p build/Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
           cd build
           zip -r SpeakEasy-ios-unsigned.ipa Payload
-          echo "鉁?IPA built successfully"
+          echo "✅ IPA构建成功"
           ls -la SpeakEasy-ios-unsigned.ipa
 
-      - name: 馃摛 Upload IPA artifact
+      - name: 📤 上传IPA构建产物
         uses: actions/upload-artifact@v4
         with:
           name: SpeakEasy-iOS-IPA
           path: ios/App/build/SpeakEasy-ios-unsigned.ipa
           retention-days: 30
 
-      - name: 馃搳 Build summary
+      - name: 📋 生成构建完成总结
         run: |
-          echo "## 鉁?iOS Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ iOS构建完成" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "IPA 鏂囦欢宸茬敓鎴愶紝涓嬭浇姝ラ锛? >> $GITHUB_STEP_SUMMARY
-          echo "1. 鍦?Actions 椤甸潰鐐瑰嚮鏈杩愯" >> $GITHUB_STEP_SUMMARY
-          echo "2. 婊氬姩鍒板簳閮?Artifacts 鍖哄煙" >> $GITHUB_STEP_SUMMARY
-          echo "3. 涓嬭浇 SpeakEasy-iOS-IPA" >> $GITHUB_STEP_SUMMARY
-          echo "4. 瑙ｅ帇寰楀埌 .ipa 鏂囦欢" >> $GITHUB_STEP_SUMMARY
-          echo "5. 鐢ㄧ埍鎬濆姪鎵嬫垨 AltStore 绛惧悕瀹夎鍒?iPhone" >> $GITHUB_STEP_SUMMARY
+          echo "IPA文件已生成，下载步骤：" >> $GITHUB_STEP_SUMMARY
+          echo "1. 在Actions页面点击本次运行记录" >> $GITHUB_STEP_SUMMARY
+          echo "2. 滚动到页面底部Artifacts区域" >> $GITHUB_STEP_SUMMARY
+          echo "3. 下载 SpeakEasy-iOS-IPA 压缩包" >> $GITHUB_STEP_SUMMARY
+          echo "4. 解压后即可得到 .ipa 安装包" >> $GITHUB_STEP_SUMMARY
+          echo "5. 使用爱思助手或AltStore签名后即可安装到iPhone" >> $GITHUB_STEP_SUMMARY
