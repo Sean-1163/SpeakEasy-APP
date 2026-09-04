@@ -35,7 +35,19 @@ jobs:
         run: |
           rm -rf ios
           npx cap add ios
-          npx cap sync ios
+          npx cap sync ios --no-pod
+          
+      - name: 📱 强制修改pod最低ios版本16.0
+        run: |
+          cat ios/APP/Podfile
+          sed -i '' 's/platform :ios.*/platform :ios, '\''16.0'\''/' ios/APP/Podfile
+          echo "===modified podflie===="
+          cat  ios/APP/Podfile
+          
+       - name: 📱 手动执行pod install
+        run: |
+          cd ios/APP
+          pod install 
 
       - name: 📂 复制自定义语音插件
         run: |
@@ -48,12 +60,12 @@ jobs:
           cp -f native-plugins/IosAsrPlugin/IosAsrPlugin.m     ios/App/App/
           echo "插件文件已成功复制到iOS项目目录"
 
-      - name: 💎 安装CocoaPods与xcodeproj依赖
-        run: |
-          gem install xcodeproj
-          cd ios/App
-          pod --version
-          pod install --repo-update
+ #     - name: 💎 安装CocoaPods与xcodeproj依赖
+ #       run: |
+ #         gem install xcodeproj
+#          cd ios/App
+ #         pod --version
+#          pod install --repo-update
 
       - name: 🔄 同步iOS项目配置
         run: npx cap sync ios
