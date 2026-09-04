@@ -44,7 +44,7 @@ jobs:
           echo "===modified podflie===="
           cat  ios/APP/Podfile
           
-       - name: 📱 手动执行pod install
+      - name: 📱 手动执行pod install
         run: |
           cd ios/APP
           pod install 
