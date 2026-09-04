@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
     allowMixedContent: true
   },
   ios: {
-    minVersion: '15.1'
+    minVersion: '16.0'
   },
   plugins: {
     NativeTts: {},
